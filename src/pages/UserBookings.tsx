@@ -1,14 +1,17 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, Ticket } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@clerk/clerk-react';
 import { mockBookings } from '@/data/mockData';
 import Navigation from '@/components/Navigation';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const UserBookings = () => {
+  const { user } = useUser();
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -31,14 +34,19 @@ const UserBookings = () => {
     }
   };
 
-  return (
+  const UserBookingsContent = () => (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
       <Navigation />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
-          <p className="text-gray-600">Manage and view your movie ticket bookings</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            My Bookings
+          </h1>
+          <p className="text-gray-600">
+            Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress}! 
+            Here are your movie ticket bookings.
+          </p>
         </div>
 
         {mockBookings.length === 0 ? (
@@ -165,6 +173,12 @@ const UserBookings = () => {
         </Card>
       </div>
     </div>
+  );
+
+  return (
+    <ProtectedRoute>
+      <UserBookingsContent />
+    </ProtectedRoute>
   );
 };
 
