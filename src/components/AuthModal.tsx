@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,17 +56,15 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">
-            {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
-          </h2>
-          <p className="text-gray-600 mt-2">
-            {mode === 'signin' 
-              ? 'Sign in to access your bookings' 
-              : 'Sign up to start booking movies'
-            }
-          </p>
-        </div>
+        <DialogTitle className="text-2xl font-bold text-center">
+          {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+        </DialogTitle>
+        <DialogDescription className="text-gray-600 text-center mb-6">
+          {mode === 'signin' 
+            ? 'Sign in to access your bookings' 
+            : 'Sign up to start booking movies'
+          }
+        </DialogDescription>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
