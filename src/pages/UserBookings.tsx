@@ -4,15 +4,15 @@ import { Calendar, MapPin, Clock, Users, Ticket } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { mockBookings } from '@/data/mockData';
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const UserBookings = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -21,7 +21,7 @@ const UserBookings = () => {
     });
   };
 
-  const getBookingStatus = (date) => {
+  const getBookingStatus = (date: string) => {
     const bookingDate = new Date(date);
     const today = new Date();
     
@@ -44,7 +44,7 @@ const UserBookings = () => {
             My Bookings
           </h1>
           <p className="text-gray-600">
-            Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress}! 
+            Welcome back, {user?.firstName || user?.email}! 
             Here are your movie ticket bookings.
           </p>
         </div>

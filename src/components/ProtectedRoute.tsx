@@ -1,16 +1,19 @@
 
 import React from 'react';
-import { SignedIn, SignedOut } from '@clerk/clerk-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  onSignInClick?: () => void;
 }
 
-const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, fallback, onSignInClick }: ProtectedRouteProps) => {
+  const { isAuthenticated } = useAuth();
+
   const defaultFallback = (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md text-center">
@@ -20,7 +23,7 @@ const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
           <p className="text-gray-600 mb-6">
             Please sign in to access your bookings and continue with the booking process.
           </p>
-          <Button className="w-full">
+          <Button className="w-full" onClick={onSignInClick}>
             <LogIn className="h-4 w-4 mr-2" />
             Sign In to Continue
           </Button>
@@ -29,12 +32,11 @@ const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
     </div>
   );
 
-  return (
-    <>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>{fallback || defaultFallback}</SignedOut>
-    </>
-  );
+  if (!isAuthenticated) {
+    return fallback || defaultFallback;
+  }
+
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

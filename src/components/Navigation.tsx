@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Film, User, Home, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from './AuthModal';
 
 const Navigation = () => {
   const location = useLocation();
-  const { user } = useUser();
+  const { user, isAuthenticated, logout } = useAuth();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'signin' | 'signup' }>({
     isOpen: false,
     mode: 'signin'
@@ -37,50 +37,53 @@ const Navigation = () => {
                 </Button>
               </Link>
               
-              <SignedIn>
-                <Link to="/my-bookings">
+              {isAuthenticated ? (
+                <>
+                  <Link to="/my-bookings">
+                    <Button 
+                      variant={location.pathname === '/my-bookings' ? 'default' : 'ghost'}
+                      className="flex items-center space-x-2"
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">My Bookings</span>
+                    </Button>
+                  </Link>
+                  
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 hidden sm:inline">
+                      Welcome, {user?.firstName || user?.email}
+                    </span>
+                    <Button 
+                      variant="ghost"
+                      onClick={logout}
+                      className="flex items-center space-x-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="hidden sm:inline">Sign Out</span>
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
                   <Button 
-                    variant={location.pathname === '/my-bookings' ? 'default' : 'ghost'}
+                    variant="ghost"
+                    onClick={() => setAuthModal({ isOpen: true, mode: 'signin' })}
+                    className="flex items-center space-x-2"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    onClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
                     className="flex items-center space-x-2"
                   >
                     <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">My Bookings</span>
+                    <span className="hidden sm:inline">Sign Up</span>
                   </Button>
-                </Link>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600 hidden sm:inline">
-                    Welcome, {user?.firstName || user?.emailAddresses[0]?.emailAddress}
-                  </span>
-                  <UserButton 
-                    appearance={{
-                      elements: {
-                        avatarBox: 'w-8 h-8'
-                      }
-                    }}
-                  />
-                </div>
-              </SignedIn>
-              
-              <SignedOut>
-                <Button 
-                  variant="ghost"
-                  onClick={() => setAuthModal({ isOpen: true, mode: 'signin' })}
-                  className="flex items-center space-x-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </Button>
-                
-                <Button 
-                  variant="default"
-                  onClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
-                  className="flex items-center space-x-2"
-                >
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign Up</span>
-                </Button>
-              </SignedOut>
+                </>
+              )}
             </div>
           </div>
         </div>
