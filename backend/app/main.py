@@ -3,9 +3,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routes import movies, shows, bookings, payments, users, theatres
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Error creating database tables: {e}")
 
 app = FastAPI(
     title="Movie Booking API",
@@ -13,10 +22,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware - Allow frontend to connect
+# CORS middleware - Allow all origins during development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,4 +45,10 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    logger.info("Health check endpoint called")
+    return {"status": "healthy", "message": "API is running"}
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting Movie Booking API...")
+    logger.info("Database connection initialized")

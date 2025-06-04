@@ -1,5 +1,5 @@
-
-const API_BASE_URL = 'http://localhost:8000/api';
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = isLocal ? 'http://localhost:8000/api' : 'http://localhost:8000/api';
 
 interface LoginResponse {
   access_token: string;
@@ -41,6 +41,8 @@ class ApiService {
   }
 
   async login(data: LoginData): Promise<LoginResponse> {
+    console.log('Attempting login with API URL:', `${API_BASE_URL}/users/login`);
+    
     const response = await fetch(`${API_BASE_URL}/users/login`, {
       method: 'POST',
       headers: this.getHeaders(false),
@@ -48,13 +50,19 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      const errorText = await response.text();
+      console.error('Login failed:', response.status, errorText);
+      throw new Error(`Login failed: ${response.status}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Login successful');
+    return result;
   }
 
   async register(data: RegisterData): Promise<LoginResponse> {
+    console.log('Attempting registration with API URL:', `${API_BASE_URL}/users/register`);
+    
     const response = await fetch(`${API_BASE_URL}/users/register`, {
       method: 'POST',
       headers: this.getHeaders(false),
@@ -62,10 +70,14 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error('Registration failed');
+      const errorText = await response.text();
+      console.error('Registration failed:', response.status, errorText);
+      throw new Error(`Registration failed: ${response.status}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Registration successful');
+    return result;
   }
 
   async getCurrentUser() {
@@ -81,15 +93,21 @@ class ApiService {
   }
 
   async getMovies() {
+    console.log('Fetching movies from:', `${API_BASE_URL}/movies`);
+    
     const response = await fetch(`${API_BASE_URL}/movies`, {
       headers: this.getHeaders(false),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch movies');
+      const errorText = await response.text();
+      console.error('Failed to fetch movies:', response.status, errorText);
+      throw new Error(`Failed to fetch movies: ${response.status}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Successfully fetched movies:', result.length);
+    return result;
   }
 
   async getMovie(movieId: string) {
