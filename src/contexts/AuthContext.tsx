@@ -1,23 +1,120 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiService } from '@/services/api';
 
 interface User {
-  id: string;
+  id: number;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<boolean>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for existing authentication on app start
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          const userData = await apiService.getCurrentUser();
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+          });
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('auth_token');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.login({ email, password });
+      
+      localStorage.setItem('auth_token', response.access_token);
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        firstName: response.user.first_name,
+        lastName: response.user.last_name,
+      });
+      
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.register({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      });
+      
+      localStorage.setItem('auth_token', response.access_token);
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        firstName: response.user.first_name,
+        lastName: response.user.last_name,
+      });
+      
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('auth_token');
+    setUser(null);
+  };
+
+  const isAuthenticated = !!user;
+
+  const value = {
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    register,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -25,106 +122,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is logged in on app start
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check against stored users (in real app, this would be API call)
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const foundUser = storedUsers.find((u: any) => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const userWithoutPassword = { ...foundUser };
-        delete userWithoutPassword.password;
-        setUser(userWithoutPassword);
-        localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-        setIsLoading(false);
-        return true;
-      } else {
-        setIsLoading(false);
-        return false;
-      }
-    } catch (error) {
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  const register = async (email: string, password: string, firstName?: string, lastName?: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const userExists = storedUsers.find((u: any) => u.email === email);
-      
-      if (userExists) {
-        setIsLoading(false);
-        return false;
-      }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        email,
-        password,
-        firstName,
-        lastName
-      };
-      
-      storedUsers.push(newUser);
-      localStorage.setItem('users', JSON.stringify(storedUsers));
-      
-      // Log in the user
-      const userWithoutPassword = { ...newUser };
-      delete userWithoutPassword.password;
-      setUser(userWithoutPassword);
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      
-      setIsLoading(false);
-      return true;
-    } catch (error) {
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
-
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-    isLoading
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
