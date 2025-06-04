@@ -35,7 +35,22 @@ FRONTEND_URL=http://localhost:5173
 python setup.py
 ```
 
-### 4. Run the Server
+### 4. Generate Sample Data (Optional)
+
+For testing and development, you can generate realistic sample data:
+
+```bash
+python generate_sample_data.py
+```
+
+This will create:
+- 80 movies with realistic titles and details
+- 40 theatres across multiple cities
+- 300 shows over the next 30 days
+- 150 test users (password: `password123`)
+- 200 bookings with payments
+
+### 5. Run the Server
 
 ```bash
 python run.py
@@ -72,6 +87,36 @@ The frontend is configured to connect to the backend automatically. Make sure bo
 - `GET /api/users/{id}/bookings` - Get user bookings
 - `POST /api/payments/initiate` - Start payment
 - `POST /api/payments/confirm` - Confirm payment
+
+## Sample Data Details
+
+The sample data generator creates realistic test data:
+
+### Movies
+- 80 popular movies with realistic titles
+- Random genres, ratings, and release dates
+- Poster URLs using picsum.photos
+
+### Theatres  
+- 40 theatres across major US and Indian cities
+- Popular theatre chains (AMC, Regal, PVR, etc.)
+- Realistic addresses and seating capacities
+
+### Shows
+- 300 shows distributed over next 30 days
+- Multiple show times per day
+- Dynamic pricing (evening shows cost more)
+
+### Users & Bookings
+- 150 test users with realistic names
+- 200 bookings with 1-4 seats each
+- 85% payment success rate for realistic data
+
+## Test User Access
+
+All generated users have the password: `password123`
+
+You can find user emails in the console output when running the sample data generator, or check the database directly.
 
 ## Troubleshooting
 
