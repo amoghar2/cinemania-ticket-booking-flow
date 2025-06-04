@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      console.log('Attempting login for:', email);
       const response = await apiService.login({ email, password });
       
       localStorage.setItem('auth_token', response.access_token);
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lastName: response.user.last_name,
       });
       
+      console.log('Login successful');
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -73,6 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      console.log('Attempting registration for:', email);
       const response = await apiService.register({
         email,
         password,
@@ -88,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lastName: response.user.last_name,
       });
       
+      console.log('Registration successful');
       setIsLoading(false);
       return true;
     } catch (error) {

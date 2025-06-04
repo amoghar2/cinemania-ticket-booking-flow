@@ -46,30 +46,51 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 @router.post("/users/register", response_model=schemas.Token)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
+    print(f"Registration attempt for email: {user.email}")
+    
+    # Check if user already exists
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        print(f"User with email {user.email} already exists")
+        raise HTTPException(
+            status_code=400, 
+            detail="Email already registered"
+        )
     
-    created_user = crud.create_user(db=db, user=user)
-    access_token = create_access_token(data={"sub": created_user.email})
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": created_user
-    }
+    try:
+        created_user = crud.create_user(db=db, user=user)
+        print(f"User created successfully: {created_user.email}")
+        
+        access_token = create_access_token(data={"sub": created_user.email})
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": created_user
+        }
+    except Exception as e:
+        print(f"Error creating user: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create user"
+        )
 
 @router.post("/users/login", response_model=schemas.Token)
 def login_user(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     """Login user"""
+    print(f"Login attempt for email: {login_data.email}")
+    
     user = crud.authenticate_user(db, login_data.email, login_data.password)
     if not user:
+        print(f"Authentication failed for email: {login_data.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    print(f"User authenticated successfully: {user.email}")
     access_token = create_access_token(data={"sub": user.email})
     return {
         "access_token": access_token,

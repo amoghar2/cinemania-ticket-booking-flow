@@ -6,21 +6,60 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockMovies, mockCities } from '@/data/mockData';
 import Navigation from '@/components/Navigation';
+import { apiService } from '@/services/api';
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState('Mumbai');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredMovies, setFilteredMovies] = useState(mockMovies);
+  const [movies, setMovies] = useState([]);
+  const [filteredMovies, setFilteredMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cities] = useState([
+    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
+    'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio',
+    'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'San Francisco', 'Columbus',
+    'Charlotte', 'Indianapolis', 'Seattle', 'Denver', 'Washington', 'Boston', 'Nashville'
+  ]);
 
   useEffect(() => {
-    const filtered = mockMovies.filter(movie => 
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        const moviesData = await apiService.getMovies();
+        setMovies(moviesData);
+        setFilteredMovies(moviesData);
+      } catch (error) {
+        console.error('Failed to fetch movies:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  useEffect(() => {
+    const filtered = movies.filter(movie => 
       movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       movie.genre.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredMovies(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, movies]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading movies...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
@@ -48,7 +87,7 @@ const Index = () => {
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
                 >
-                  {mockCities.map(city => (
+                  {cities.map(city => (
                     <option key={city} value={city} className="text-gray-900">{city}</option>
                   ))}
                 </select>
@@ -77,40 +116,49 @@ const Index = () => {
           <span className="text-gray-600">{filteredMovies.length} movies found</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredMovies.map((movie) => (
-            <Link key={movie.id} to={`/movie/${movie.id}`}>
-              <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border-0 bg-white/80 backdrop-blur-sm">
-                <div className="relative overflow-hidden">
-                  <img
-                    src={movie.poster}
-                    alt={movie.title}
-                    className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-yellow-500 text-black font-bold">
-                      <Star className="w-3 h-3 mr-1" />
-                      {movie.rating}
-                    </Badge>
+        {filteredMovies.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">No movies found matching your search.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredMovies.map((movie) => (
+              <Link key={movie.id} to={`/movie/${movie.id}`}>
+                <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border-0 bg-white/80 backdrop-blur-sm">
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={movie.poster_url || movie.poster}
+                      alt={movie.title}
+                      className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        e.target.src = 'https://picsum.photos/300/450?random=' + movie.id;
+                      }}
+                    />
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-yellow-500 text-black font-bold">
+                        <Star className="w-3 h-3 mr-1" />
+                        {movie.rating}
+                      </Badge>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                      <Badge variant="secondary" className="mb-2">{movie.genre}</Badge>
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                    <Badge variant="secondary" className="mb-2">{movie.genre}</Badge>
-                  </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-bold text-lg mb-2 group-hover:text-purple-600 transition-colors">
-                    {movie.title}
-                  </h3>
-                  <div className="flex items-center text-sm text-gray-600 mb-2">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {movie.duration}
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">{movie.description}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-bold text-lg mb-2 group-hover:text-purple-600 transition-colors">
+                      {movie.title}
+                    </h3>
+                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {movie.duration} mins
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">{movie.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
