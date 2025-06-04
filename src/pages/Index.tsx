@@ -131,7 +131,8 @@ const Index = () => {
                       alt={movie.title}
                       className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-300"
                       onError={(e) => {
-                        e.target.src = 'https://picsum.photos/300/450?random=' + movie.id;
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://picsum.photos/300/450?random=' + movie.id;
                       }}
                     />
                     <div className="absolute top-4 right-4">
