@@ -265,7 +265,9 @@ class SupabaseApiService {
       throw new Error('Failed to get show details');
     }
 
-    const totalAmount = show.price * seatIds.length;
+    // Enforce minimum ticket price per seat
+    const perSeatPrice = Math.max(show.price, 199); // ₹199 minimum
+    const totalAmount = perSeatPrice * seatIds.length;
 
     // Create booking
     const { data: booking, error: bookingError } = await supabase
@@ -308,28 +310,7 @@ class SupabaseApiService {
       throw new Error('Failed to create booking seats');
     }
 
-    return booking;
-  }
-
-  async getUserBookings(userId: string) {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        show:shows(*),
-        booking_seats(
-          seat:seats(*)
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Failed to fetch user bookings:', error);
-      throw new Error(`Failed to fetch user bookings: ${error.message}`);
-    }
-
-    return data || [];
+    return { ...booking, per_seat_price: perSeatPrice };
   }
 
   async initiatePayment(bookingId: string, amount: number) {
@@ -355,9 +336,11 @@ class SupabaseApiService {
     return data;
   }
 
-  async confirmPayment(transactionId: string, status: 'pending' | 'completed' | 'failed' | 'refunded') {
-    console.log('Confirming payment with status:', status);
-    
+  async confirmPayment(transactionId: string, _status: 'pending' | 'completed' | 'failed' | 'refunded') {
+    // Ignore argument and always confirm as "completed" (mock)
+    const status: 'completed' = 'completed';
+    console.log('Mock confirming payment with status:', status);
+
     const { data: payment, error } = await supabase
       .from('payments')
       .update({ status })
@@ -370,17 +353,16 @@ class SupabaseApiService {
       throw new Error(`Failed to confirm payment: ${error.message}`);
     }
 
-    // Update booking status
-    if (status === 'completed') {
+    // Always update booking status to confirmed
+    if (payment) {
       await supabase
         .from('bookings')
-        .update({ 
+        .update({
           status: 'confirmed',
-          payment_id: transactionId 
+          payment_id: transactionId
         })
         .eq('id', payment.booking_id);
     }
-
     return payment;
   }
 }

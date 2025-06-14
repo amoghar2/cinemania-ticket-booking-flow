@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,14 +31,17 @@ const Booking = () => {
     return null;
   }
 
-  const convenientFee = Math.round(bookingData.totalAmount * 0.1);
-  const finalAmount = bookingData.totalAmount + convenientFee;
+  // Guarantee minimum ticket price of ₹199 per ticket
+  const seatCount = bookingData.selectedSeats.length;
+  const ticketBase = Math.max(bookingData.totalAmount / seatCount, 199);
+  const baseTotal = ticketBase * seatCount;
+  const convenientFee = Math.round(baseTotal * 0.1);
+  const finalAmount = baseTotal + convenientFee;
 
   const handlePayment = async () => {
     if (!user) return;
-    
     setIsProcessing(true);
-    
+
     try {
       console.log('Creating booking with data:', {
         showId: bookingData.showId,
@@ -47,7 +49,7 @@ const Booking = () => {
         email: contactInfo.email
       });
 
-      // Create booking
+      // Make sure total uses forced minimum price as above
       const booking = await apiService.createBooking(
         bookingData.showId,
         bookingData.selectedSeats.map((seat: any) => seat.id),
@@ -59,11 +61,10 @@ const Booking = () => {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Create payment record
+      // Always succeeds now (mock)
       const payment = await apiService.initiatePayment(booking.id, finalAmount);
       console.log('Payment initiated:', payment);
       
-      // Confirm payment with 'completed' status
       await apiService.confirmPayment(payment.transaction_id, 'completed');
       console.log('Payment confirmed as completed');
       
@@ -217,7 +218,7 @@ const Booking = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Tickets ({bookingData.selectedSeats.length})</span>
-                    <span>₹{bookingData.totalAmount}</span>
+                    <span>₹{baseTotal}</span>
                   </div>
                   
                   <div className="flex justify-between">
