@@ -24,7 +24,9 @@ const Showtime = () => {
       
       try {
         setLoading(true);
+        console.log('Fetching seats for showId:', showId);
         const seatsData = await apiService.getShowSeats(showId);
+        console.log('Seats data received:', seatsData);
         setSeats(seatsData);
       } catch (error) {
         console.error('Failed to fetch seats:', error);
@@ -36,22 +38,31 @@ const Showtime = () => {
     fetchSeats();
   }, [showId]);
 
-  const handleSeatClick = (seatId: string) => {
-    const seat = seats.find((s: any) => s.id === seatId);
-    if (!seat || seat.is_booked || seat.is_locked) return;
+  const handleSeatClick = (seatId) => {
+    console.log('Seat clicked:', seatId);
+    const seat = seats.find((s) => s.id === seatId);
+    console.log('Found seat:', seat);
     
-    setSelectedSeats(prev => 
-      prev.includes(seatId) 
+    if (!seat || seat.is_booked || seat.is_locked) {
+      console.log('Seat not available:', { is_booked: seat?.is_booked, is_locked: seat?.is_locked });
+      return;
+    }
+    
+    setSelectedSeats(prev => {
+      const isSelected = prev.includes(seatId);
+      const newSelection = isSelected 
         ? prev.filter(id => id !== seatId)
-        : [...prev, seatId]
-    );
+        : [...prev, seatId];
+      console.log('Updated selected seats:', newSelection);
+      return newSelection;
+    });
   };
 
-  const getSeatClass = (seat: any) => {
+  const getSeatClass = (seat) => {
     if (seat.is_booked) return 'bg-red-500 cursor-not-allowed text-white';
     if (seat.is_locked) return 'bg-orange-500 cursor-not-allowed text-white';
     if (selectedSeats.includes(seat.id)) return 'bg-green-500 border-green-600 text-white';
-    return 'bg-gray-200 hover:bg-purple-200 border-gray-300';
+    return 'bg-gray-200 hover:bg-purple-200 border-gray-300 cursor-pointer';
   };
 
   const totalAmount = selectedSeats.length * (show?.price || 0);
@@ -59,7 +70,7 @@ const Showtime = () => {
   const proceedToBooking = () => {
     if (selectedSeats.length === 0) return;
     
-    const selectedSeatDetails = seats.filter((seat: any) => selectedSeats.includes(seat.id));
+    const selectedSeatDetails = seats.filter((seat) => selectedSeats.includes(seat.id));
     navigate('/booking', {
       state: {
         movie,
@@ -100,7 +111,7 @@ const Showtime = () => {
   }
 
   // Group seats by row
-  const seatsByRow = seats.reduce((acc: any, seat: any) => {
+  const seatsByRow = seats.reduce((acc, seat) => {
     if (!acc[seat.row_letter]) {
       acc[seat.row_letter] = [];
     }
@@ -111,8 +122,10 @@ const Showtime = () => {
   // Sort rows alphabetically and seats by number
   const sortedRows = Object.keys(seatsByRow).sort();
   sortedRows.forEach(row => {
-    seatsByRow[row].sort((a: any, b: any) => parseInt(a.seat_number) - parseInt(b.seat_number));
+    seatsByRow[row].sort((a, b) => parseInt(a.seat_number) - parseInt(b.seat_number));
   });
+
+  console.log('Rendering seats:', { totalSeats: seats.length, selectedSeats, seatsByRow });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
@@ -160,24 +173,30 @@ const Showtime = () => {
               </CardHeader>
               
               <CardContent>
-                <div className="space-y-2 mb-6">
-                  {sortedRows.map(row => (
-                    <div key={row} className="flex items-center justify-center space-x-2">
-                      <span className="w-6 text-center font-semibold text-gray-600">{row}</span>
-                      {seatsByRow[row].map((seat: any) => (
-                        <button
-                          key={seat.id}
-                          onClick={() => handleSeatClick(seat.id)}
-                          className={`w-8 h-8 rounded border-2 text-xs font-medium transition-all duration-200 ${getSeatClass(seat)}`}
-                          disabled={seat.is_booked || seat.is_locked}
-                          title={`${row}${seat.seat_number} - ${seat.is_booked ? 'Booked' : seat.is_locked ? 'Locked' : 'Available'}`}
-                        >
-                          {seat.seat_number}
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                {seats.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No seats available for this show</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 mb-6">
+                    {sortedRows.map(row => (
+                      <div key={row} className="flex items-center justify-center space-x-2">
+                        <span className="w-6 text-center font-semibold text-gray-600">{row}</span>
+                        {seatsByRow[row].map((seat) => (
+                          <button
+                            key={seat.id}
+                            onClick={() => handleSeatClick(seat.id)}
+                            className={`w-8 h-8 rounded border-2 text-xs font-medium transition-all duration-200 ${getSeatClass(seat)}`}
+                            disabled={seat.is_booked || seat.is_locked}
+                            title={`${row}${seat.seat_number} - ${seat.is_booked ? 'Booked' : seat.is_locked ? 'Locked' : 'Available'}`}
+                          >
+                            {seat.seat_number}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Legend */}
                 <div className="flex justify-center space-x-6 text-sm">
@@ -214,7 +233,7 @@ const Showtime = () => {
                   {selectedSeats.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {selectedSeats.map(seatId => {
-                        const seat = seats.find((s: any) => s.id === seatId);
+                        const seat = seats.find((s) => s.id === seatId);
                         return (
                           <Badge key={seatId} variant="outline">
                             {seat?.row_letter}{seat?.seat_number}
