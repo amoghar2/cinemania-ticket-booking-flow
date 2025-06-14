@@ -26,7 +26,7 @@ const Index = () => {
     const fetchMovies = async () => {
       try {
         setLoading(true);
-        const moviesData = await apiService.getMovies();
+        const moviesData = await apiService.getMovies(selectedCity);
         setMovies(moviesData);
         setFilteredMovies(moviesData);
       } catch (error) {

@@ -38,8 +38,8 @@ class ApiService {
     return supabaseApiService.getCurrentUser();
   }
 
-  async getMovies() {
-    return supabaseApiService.getMovies();
+  async getMovies(city?: string) {
+    return supabaseApiService.getMovies(city);
   }
 
   async getMovie(movieId: string) {
