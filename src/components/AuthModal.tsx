@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,34 +23,60 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setIsSubmitting(true);
     
-    if (mode === 'signin') {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        onClose();
-        setFormData({ email: '', password: '', firstName: '', lastName: '' });
+    try {
+      if (mode === 'signin') {
+        const result = await login(formData.email, formData.password);
+        if (result.success) {
+          setSuccess('Login successful! Welcome back.');
+          setTimeout(() => {
+            onClose();
+            resetForm();
+          }, 1500);
+        } else {
+          setError(result.error || 'Login failed');
+        }
       } else {
-        setError('Invalid email or password');
+        const result = await register(formData.email, formData.password, formData.firstName, formData.lastName);
+        if (result.success) {
+          if (result.needsVerification) {
+            setSuccess('Account created! Please check your email to verify your account before signing in.');
+          } else {
+            setSuccess('Account created successfully! Welcome!');
+          }
+          setTimeout(() => {
+            onClose();
+            resetForm();
+          }, 3000);
+        } else {
+          setError(result.error || 'Registration failed');
+        }
       }
-    } else {
-      const success = await register(formData.email, formData.password, formData.firstName, formData.lastName);
-      if (success) {
-        onClose();
-        setFormData({ email: '', password: '', firstName: '', lastName: '' });
-      } else {
-        setError('User already exists or registration failed');
-      }
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ email: '', password: '', firstName: '', lastName: '' });
+    setError('');
+    setSuccess('');
+    setShowPassword(false);
   };
 
   const handleClose = () => {
     onClose();
-    setFormData({ email: '', password: '', firstName: '', lastName: '' });
-    setError('');
+    resetForm();
   };
 
   return (
@@ -76,6 +102,7 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   placeholder="John"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -85,6 +112,7 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   placeholder="Doe"
+                  required
                 />
               </div>
             </div>
@@ -112,6 +140,7 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
                 required
+                minLength={6}
               />
               <Button
                 type="button"
@@ -130,13 +159,21 @@ const AuthModal = ({ isOpen, onClose, mode }: AuthModalProps) => {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center">
-              {error}
+            <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-3 rounded-md">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {success && (
+            <div className="flex items-center space-x-2 text-green-600 text-sm bg-green-50 p-3 rounded-md">
+              <CheckCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting || isLoading}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </Button>
         </form>
