@@ -82,8 +82,14 @@ const MovieDetails = () => {
     };
   });
 
-  // Group shows by theatre
+  // Group shows by theatre with null checks
   const showsByTheatre = shows.reduce((acc, show) => {
+    // Add null check for show.theatre
+    if (!show.theatre || !show.theatre.id) {
+      console.warn('Show missing theatre data:', show);
+      return acc;
+    }
+    
     const theatreId = show.theatre.id;
     if (!acc[theatreId]) {
       acc[theatreId] = {
