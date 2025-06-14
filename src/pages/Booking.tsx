@@ -11,11 +11,13 @@ import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Booking = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const bookingData = location.state;
 
   const [contactInfo, setContactInfo] = useState({
@@ -39,6 +41,12 @@ const Booking = () => {
     setIsProcessing(true);
     
     try {
+      console.log('Creating booking with data:', {
+        showId: bookingData.showId,
+        selectedSeats: bookingData.selectedSeats,
+        email: contactInfo.email
+      });
+
       // Create booking
       const booking = await apiService.createBooking(
         bookingData.showId,
@@ -46,26 +54,54 @@ const Booking = () => {
         contactInfo.email
       );
 
+      console.log('Booking created:', booking);
+
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Create payment record
       const payment = await apiService.initiatePayment(booking.id, finalAmount);
+      console.log('Payment initiated:', payment);
       
-      // Confirm payment (simulate successful payment)
-      await apiService.confirmPayment(payment.transaction_id, 'completed');
+      // Confirm payment with 'success' status (not 'completed')
+      await apiService.confirmPayment(payment.transaction_id, 'success');
+      console.log('Payment confirmed as success');
       
-      navigate(`/confirmation/${booking.id}`, {
-        state: {
-          ...bookingData,
-          contactInfo,
-          bookingId: booking.id,
-          paymentId: payment.transaction_id
-        }
+      // Show success toast
+      toast({
+        title: "Payment Successful!",
+        description: "Your booking has been confirmed. Redirecting to confirmation page...",
+        variant: "default",
       });
+
+      // Navigate to confirmation page with all details
+      setTimeout(() => {
+        navigate('/booking-confirmation', {
+          state: {
+            movie: bookingData.movie,
+            theatre: bookingData.theatre,
+            showtime: bookingData.show,
+            selectedDate: bookingData.selectedDate,
+            selectedSeats: bookingData.selectedSeats,
+            totalAmount: finalAmount,
+            userDetails: {
+              name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email,
+              email: contactInfo.email,
+              phone: contactInfo.phone
+            },
+            bookingId: booking.id,
+            paymentId: payment.transaction_id
+          }
+        });
+      }, 1500);
+      
     } catch (error) {
       console.error('Payment failed:', error);
-      alert('Payment failed. Please try again.');
+      toast({
+        title: "Payment Failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
