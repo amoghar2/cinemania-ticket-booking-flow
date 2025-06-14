@@ -14,11 +14,10 @@ const MovieDetails = () => {
   const city = searchParams.get('city') || 'Bengaluru';
   
   const [movie, setMovie] = useState(null);
+  const [allShows, setAllShows] = useState([]);
   const [shows, setShows] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
+  const [availableDates, setAvailableDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,17 +26,35 @@ const MovieDetails = () => {
       
       try {
         setLoading(true);
-        console.log('Fetching movie details for ID:', id, 'City:', city, 'Date:', selectedDate);
+        console.log('Fetching movie details for ID:', id, 'City:', city);
         
         // Fetch movie details
         const movieData = await apiService.getMovie(id);
         console.log('Movie data received:', movieData);
         setMovie(movieData);
         
-        // Fetch shows for this movie in the selected city and date
-        const showsData = await apiService.getMovieShows(id, city, selectedDate);
-        console.log('Shows data received for', city, 'on', selectedDate, ':', showsData);
-        setShows(showsData);
+        // Fetch ALL shows for this movie in the selected city (without date filter)
+        const allShowsData = await apiService.getMovieShows(id, city);
+        console.log('All shows data received for', city, ':', allShowsData);
+        setAllShows(allShowsData);
+        
+        // Extract unique available dates from the shows
+        const uniqueDates = [...new Set(allShowsData.map(show => show.show_date))].sort();
+        console.log('Available dates extracted:', uniqueDates);
+        setAvailableDates(uniqueDates);
+        
+        // Set the first available date as selected, or empty if no dates
+        if (uniqueDates.length > 0) {
+          setSelectedDate(uniqueDates[0]);
+          // Filter shows for the first available date
+          const filteredShows = allShowsData.filter(show => show.show_date === uniqueDates[0]);
+          setShows(filteredShows);
+          console.log('Shows for first available date:', uniqueDates[0], ':', filteredShows);
+        } else {
+          setSelectedDate('');
+          setShows([]);
+          console.log('No available dates found');
+        }
       } catch (error) {
         console.error('Failed to fetch movie data:', error);
       } finally {
@@ -46,7 +63,17 @@ const MovieDetails = () => {
     };
 
     fetchMovieData();
-  }, [id, city, selectedDate]);
+  }, [id, city]);
+
+  // Handle date change
+  useEffect(() => {
+    if (selectedDate && allShows.length > 0) {
+      console.log('Filtering shows for selected date:', selectedDate);
+      const filteredShows = allShows.filter(show => show.show_date === selectedDate);
+      console.log('Filtered shows for date', selectedDate, ':', filteredShows);
+      setShows(filteredShows);
+    }
+  }, [selectedDate, allShows]);
 
   if (loading) {
     return (
@@ -75,15 +102,24 @@ const MovieDetails = () => {
     );
   }
 
-  const dates = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    return {
-      date: date.toISOString().split('T')[0],
-      day: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : date.toLocaleDateString('en-US', { weekday: 'short' }),
-      dayNumber: date.getDate()
-    };
-  });
+  // Format dates for display
+  const formatDateForDisplay = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (dateString === today.toISOString().split('T')[0]) {
+      return { day: 'Today', dayNumber: date.getDate() };
+    } else if (dateString === tomorrow.toISOString().split('T')[0]) {
+      return { day: 'Tomorrow', dayNumber: date.getDate() };
+    } else {
+      return {
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNumber: date.getDate()
+      };
+    }
+  };
 
   // Group shows by theatre with enhanced null checks
   const showsByTheatre = shows.reduce((acc, show) => {
@@ -150,27 +186,40 @@ const MovieDetails = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Date Selection */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 flex items-center">
-            <Calendar className="h-6 w-6 mr-2" />
-            Select Date
-          </h2>
-          <div className="flex space-x-4 overflow-x-auto pb-2">
-            {dates.map((dateObj) => (
-              <Button
-                key={dateObj.date}
-                variant={selectedDate === dateObj.date ? 'default' : 'outline'}
-                onClick={() => setSelectedDate(dateObj.date)}
-                className="min-w-fit"
-              >
-                <div className="text-center">
-                  <div className="font-semibold">{dateObj.day}</div>
-                  <div className="text-sm">{dateObj.dayNumber}</div>
-                </div>
-              </Button>
-            ))}
+        {availableDates.length > 0 ? (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 flex items-center">
+              <Calendar className="h-6 w-6 mr-2" />
+              Select Date
+            </h2>
+            <div className="flex space-x-4 overflow-x-auto pb-2">
+              {availableDates.map((dateString) => {
+                const { day, dayNumber } = formatDateForDisplay(dateString);
+                return (
+                  <Button
+                    key={dateString}
+                    variant={selectedDate === dateString ? 'default' : 'outline'}
+                    onClick={() => setSelectedDate(dateString)}
+                    className="min-w-fit"
+                  >
+                    <div className="text-center">
+                      <div className="font-semibold">{day}</div>
+                      <div className="text-sm">{dayNumber}</div>
+                    </div>
+                  </Button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4 flex items-center">
+              <Calendar className="h-6 w-6 mr-2" />
+              No Shows Available
+            </h2>
+            <p className="text-gray-600">No show dates are currently available for this movie in {city}.</p>
+          </div>
+        )}
 
         {/* Theatres and Showtimes */}
         <div>
@@ -181,14 +230,17 @@ const MovieDetails = () => {
           
           {Object.keys(showsByTheatre).length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">No shows available for this date in {city}.</p>
-              <p className="text-gray-500">Try selecting a different date.</p>
-              <p className="text-gray-400 text-sm mt-2">
-                Debug: Found {shows.length} total shows for movie ID {id} in {city} on {selectedDate}
-              </p>
-              <p className="text-gray-400 text-xs mt-1">
-                Check browser console for detailed debugging information.
-              </p>
+              {availableDates.length === 0 ? (
+                <div>
+                  <p className="text-gray-600 text-lg">No shows available for this movie in {city}.</p>
+                  <p className="text-gray-500">This movie may not be currently playing in this city.</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-600 text-lg">No shows available for {selectedDate} in {city}.</p>
+                  <p className="text-gray-500">Try selecting a different date.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
