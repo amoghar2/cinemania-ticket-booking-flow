@@ -26,7 +26,7 @@ const Index = () => {
     const fetchMovies = async () => {
       try {
         setLoading(true);
-        const moviesData = await apiService.getMovies();
+        const moviesData = await apiService.getMovies(selectedCity);
         setMovies(moviesData);
         setFilteredMovies(moviesData);
       } catch (error) {
@@ -37,7 +37,7 @@ const Index = () => {
     };
 
     fetchMovies();
-  }, []);
+  }, [selectedCity]);
 
   useEffect(() => {
     const filtered = movies.filter(movie => 
@@ -123,7 +123,7 @@ const Index = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredMovies.map((movie) => (
-              <Link key={movie.id} to={`/movie/${movie.id}`}>
+              <Link key={movie.id} to={`/movie/${movie.id}?city=${selectedCity}`}>
                 <Card className="group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border-0 bg-white/80 backdrop-blur-sm">
                   <div className="relative overflow-hidden">
                     <img

@@ -124,21 +124,40 @@ class SupabaseApiService {
     };
   }
 
-  async getMovies() {
-    console.log('Fetching movies from Supabase');
+  async getMovies(city?: string) {
+    console.log('Fetching movies from Supabase for city:', city);
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('movies')
-      .select('*')
+      .select(`
+        *,
+        shows!inner(
+          theatre:theatres!inner(city)
+        )
+      `)
       .order('title');
+
+    if (city) {
+      query = query.eq('shows.theatre.city', city);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Failed to fetch movies:', error);
       throw new Error(`Failed to fetch movies: ${error.message}`);
     }
 
-    console.log('Successfully fetched movies:', data?.length || 0);
-    return data || [];
+    // Remove duplicates by movie id
+    const uniqueMovies = data?.reduce((acc: any[], movie: any) => {
+      if (!acc.find(m => m.id === movie.id)) {
+        acc.push(movie);
+      }
+      return acc;
+    }, []) || [];
+
+    console.log('Successfully fetched movies:', uniqueMovies?.length || 0);
+    return uniqueMovies;
   }
 
   async getMovie(movieId: string) {
@@ -337,7 +356,7 @@ class SupabaseApiService {
     return data;
   }
 
-  async confirmPayment(transactionId: string, status: string) {
+  async confirmPayment(transactionId: string, status: 'pending' | 'completed' | 'failed' | 'refunded') {
     const { data: payment, error } = await supabase
       .from('payments')
       .update({ status })

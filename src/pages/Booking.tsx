@@ -10,6 +10,7 @@ import { Film, MapPin, Clock, Users, CreditCard, User as UserIcon } from 'lucide
 import Navigation from '@/components/Navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiService } from '@/services/api';
 
 const Booking = () => {
   const navigate = useNavigate();
@@ -29,21 +30,45 @@ const Booking = () => {
     return null;
   }
 
+  const convenientFee = Math.round(bookingData.totalAmount * 0.1);
+  const finalAmount = bookingData.totalAmount + convenientFee;
+
   const handlePayment = async () => {
+    if (!user) return;
+    
     setIsProcessing(true);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const bookingId = Math.random().toString(36).substr(2, 9).toUpperCase();
-    
-    navigate(`/confirmation/${bookingId}`, {
-      state: {
-        ...bookingData,
-        contactInfo,
-        bookingId
-      }
-    });
+    try {
+      // Create booking
+      const booking = await apiService.createBooking(
+        bookingData.showId,
+        bookingData.selectedSeats.map((seat: any) => seat.id),
+        contactInfo.email
+      );
+
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Create payment record
+      const payment = await apiService.initiatePayment(booking.id, finalAmount);
+      
+      // Confirm payment (simulate successful payment)
+      await apiService.confirmPayment(payment.transaction_id, 'completed');
+      
+      navigate(`/confirmation/${booking.id}`, {
+        state: {
+          ...bookingData,
+          contactInfo,
+          bookingId: booking.id,
+          paymentId: payment.transaction_id
+        }
+      });
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const BookingContent = () => (
@@ -66,31 +91,35 @@ const Booking = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-start space-x-4">
                   <img 
-                    src={bookingData.movie.poster} 
+                    src={bookingData.movie.poster_url} 
                     alt={bookingData.movie.title}
                     className="w-20 h-28 object-cover rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://picsum.photos/80/112?random=' + bookingData.movie.id;
+                    }}
                   />
                   <div className="flex-1">
                     <h3 className="text-xl font-bold">{bookingData.movie.title}</h3>
-                    <p className="text-gray-600">{bookingData.movie.genre} | {bookingData.movie.duration}</p>
+                    <p className="text-gray-600">{bookingData.movie.genre} | {bookingData.movie.duration} mins</p>
                     
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center space-x-2 text-sm">
                         <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{bookingData.theatre}</span>
+                        <span>{bookingData.theatre.name}, {bookingData.city}</span>
                       </div>
                       
                       <div className="flex items-center space-x-2 text-sm">
                         <Clock className="h-4 w-4 text-gray-400" />
-                        <span>{bookingData.date} at {bookingData.showtime}</span>
+                        <span>{bookingData.selectedDate} at {bookingData.show.show_time}</span>
                       </div>
                       
                       <div className="flex items-center space-x-2 text-sm">
                         <Users className="h-4 w-4 text-gray-400" />
                         <div className="flex flex-wrap gap-1">
-                          {bookingData.selectedSeats.map((seat: string, index: number) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {seat}
+                          {bookingData.selectedSeats.map((seat: any) => (
+                            <Badge key={seat.id} variant="outline" className="text-xs">
+                              {seat.row_letter}{seat.seat_number}
                             </Badge>
                           ))}
                         </div>
@@ -152,18 +181,18 @@ const Booking = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Tickets ({bookingData.selectedSeats.length})</span>
-                    <span>₹{bookingData.ticketPrice * bookingData.selectedSeats.length}</span>
+                    <span>₹{bookingData.totalAmount}</span>
                   </div>
                   
                   <div className="flex justify-between">
                     <span>Convenience Fee</span>
-                    <span>₹50</span>
+                    <span>₹{convenientFee}</span>
                   </div>
                   
                   <div className="border-t pt-2">
                     <div className="flex justify-between font-bold text-lg">
                       <span>Total Amount</span>
-                      <span className="text-green-600">₹{bookingData.totalAmount}</span>
+                      <span className="text-green-600">₹{finalAmount}</span>
                     </div>
                   </div>
                 </div>
@@ -182,7 +211,7 @@ const Booking = () => {
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Pay ₹{bookingData.totalAmount}
+                      Pay ₹{finalAmount}
                     </>
                   )}
                 </Button>

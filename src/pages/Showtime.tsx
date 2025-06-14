@@ -1,27 +1,44 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { generateSeatLayout } from '@/data/mockData';
 import Navigation from '@/components/Navigation';
+import { apiService } from '@/services/api';
 
 const Showtime = () => {
+  const { showId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { movie, theatre, showtime, selectedDate } = location.state || {};
+  const { movie, theatre, show, selectedDate, city } = location.state || {};
   
   const [seats, setSeats] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSeats(generateSeatLayout());
-  }, []);
+    const fetchSeats = async () => {
+      if (!showId) return;
+      
+      try {
+        setLoading(true);
+        const seatsData = await apiService.getShowSeats(showId);
+        setSeats(seatsData);
+      } catch (error) {
+        console.error('Failed to fetch seats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleSeatClick = (seatId) => {
-    if (seats.find(seat => seat.id === seatId)?.isBooked) return;
+    fetchSeats();
+  }, [showId]);
+
+  const handleSeatClick = (seatId: string) => {
+    const seat = seats.find((s: any) => s.id === seatId);
+    if (!seat || seat.is_booked || seat.is_locked) return;
     
     setSelectedSeats(prev => 
       prev.includes(seatId) 
@@ -30,34 +47,34 @@ const Showtime = () => {
     );
   };
 
-  const getSeatClass = (seat) => {
-    if (seat.isBooked) return 'bg-red-500 cursor-not-allowed';
-    if (selectedSeats.includes(seat.id)) return 'bg-green-500 border-green-600';
+  const getSeatClass = (seat: any) => {
+    if (seat.is_booked) return 'bg-red-500 cursor-not-allowed text-white';
+    if (seat.is_locked) return 'bg-orange-500 cursor-not-allowed text-white';
+    if (selectedSeats.includes(seat.id)) return 'bg-green-500 border-green-600 text-white';
     return 'bg-gray-200 hover:bg-purple-200 border-gray-300';
   };
 
-  const totalAmount = selectedSeats.reduce((sum, seatId) => {
-    const seat = seats.find(s => s.id === seatId);
-    return sum + (seat?.price || 0);
-  }, 0);
+  const totalAmount = selectedSeats.length * (show?.price || 0);
 
   const proceedToBooking = () => {
     if (selectedSeats.length === 0) return;
     
-    const selectedSeatDetails = seats.filter(seat => selectedSeats.includes(seat.id));
+    const selectedSeatDetails = seats.filter((seat: any) => selectedSeats.includes(seat.id));
     navigate('/booking', {
       state: {
         movie,
         theatre,
-        showtime,
+        show,
         selectedDate,
+        city,
         selectedSeats: selectedSeatDetails,
-        totalAmount
+        totalAmount,
+        showId
       }
     });
   };
 
-  if (!movie || !theatre || !showtime) {
+  if (!movie || !theatre || !show) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -67,6 +84,35 @@ const Showtime = () => {
       </div>
     );
   }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading seats...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Group seats by row
+  const seatsByRow = seats.reduce((acc: any, seat: any) => {
+    if (!acc[seat.row_letter]) {
+      acc[seat.row_letter] = [];
+    }
+    acc[seat.row_letter].push(seat);
+    return acc;
+  }, {});
+
+  // Sort rows alphabetically and seats by number
+  const sortedRows = Object.keys(seatsByRow).sort();
+  sortedRows.forEach(row => {
+    seatsByRow[row].sort((a: any, b: any) => parseInt(a.seat_number) - parseInt(b.seat_number));
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
@@ -89,8 +135,8 @@ const Showtime = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-2xl font-bold">{movie.title}</h1>
-                  <p className="opacity-90">{theatre.name} - {theatre.location}</p>
-                  <p className="opacity-90">{selectedDate} • {showtime.time}</p>
+                  <p className="opacity-90">{theatre.name} - {theatre.address}</p>
+                  <p className="opacity-90">{selectedDate} • {show.show_time}</p>
                 </div>
                 <Badge variant="secondary" className="text-purple-900">
                   {movie.genre}
@@ -115,24 +161,20 @@ const Showtime = () => {
               
               <CardContent>
                 <div className="space-y-2 mb-6">
-                  {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(row => (
+                  {sortedRows.map(row => (
                     <div key={row} className="flex items-center justify-center space-x-2">
                       <span className="w-6 text-center font-semibold text-gray-600">{row}</span>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(number => {
-                        const seat = seats.find(s => s.row === row && s.number === number);
-                        if (!seat) return null;
-                        
-                        return (
-                          <button
-                            key={seat.id}
-                            onClick={() => handleSeatClick(seat.id)}
-                            className={`w-8 h-8 rounded border-2 text-xs font-medium transition-all duration-200 ${getSeatClass(seat)}`}
-                            disabled={seat.isBooked}
-                          >
-                            {number}
-                          </button>
-                        );
-                      })}
+                      {seatsByRow[row].map((seat: any) => (
+                        <button
+                          key={seat.id}
+                          onClick={() => handleSeatClick(seat.id)}
+                          className={`w-8 h-8 rounded border-2 text-xs font-medium transition-all duration-200 ${getSeatClass(seat)}`}
+                          disabled={seat.is_booked || seat.is_locked}
+                          title={`${row}${seat.seat_number} - ${seat.is_booked ? 'Booked' : seat.is_locked ? 'Locked' : 'Available'}`}
+                        >
+                          {seat.seat_number}
+                        </button>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -151,6 +193,10 @@ const Showtime = () => {
                     <div className="w-4 h-4 bg-red-500 rounded"></div>
                     <span>Booked</span>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <span>Locked</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -167,9 +213,14 @@ const Showtime = () => {
                   <h4 className="font-semibold mb-2">Selected Seats</h4>
                   {selectedSeats.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {selectedSeats.map(seatId => (
-                        <Badge key={seatId} variant="outline">{seatId}</Badge>
-                      ))}
+                      {selectedSeats.map(seatId => {
+                        const seat = seats.find((s: any) => s.id === seatId);
+                        return (
+                          <Badge key={seatId} variant="outline">
+                            {seat?.row_letter}{seat?.seat_number}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-500">No seats selected</p>
