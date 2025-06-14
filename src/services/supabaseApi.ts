@@ -365,6 +365,28 @@ class SupabaseApiService {
     }
     return payment;
   }
+
+  async getUserBookings(userId: string) {
+    // Fetch bookings for a user, including show and seat detail relationships
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        show:shows(*, movie:movies(*), theatre:theatres(*)),
+        booking_seats(
+          seat:seats(*)
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch user bookings:', error);
+      throw new Error(`Failed to fetch user bookings: ${error.message}`);
+    }
+
+    return data || [];
+  }
 }
 
 export const supabaseApiService = new SupabaseApiService();
