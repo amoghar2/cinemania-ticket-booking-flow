@@ -71,29 +71,13 @@ const Booking = () => {
       // Show success toast
       toast({
         title: "Payment Successful!",
-        description: "Your booking has been confirmed. Redirecting to confirmation page...",
+        description: "Your booking has been confirmed. Redirecting to My Bookings...",
         variant: "default",
       });
 
-      // Navigate to confirmation page with all details
+      // Redirect to user bookings so new ticket appears instantly
       setTimeout(() => {
-        navigate(`/confirmation/${booking.id}`, {
-          state: {
-            movie: bookingData.movie,
-            theatre: bookingData.theatre,
-            showtime: bookingData.show,
-            selectedDate: bookingData.selectedDate,
-            selectedSeats: bookingData.selectedSeats,
-            totalAmount: finalAmount,
-            userDetails: {
-              name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email,
-              email: contactInfo.email,
-              phone: contactInfo.phone
-            },
-            bookingId: booking.id,
-            paymentId: payment.transaction_id
-          }
-        });
+        navigate(`/my-bookings`);
       }, 1500);
       
     } catch (error) {
