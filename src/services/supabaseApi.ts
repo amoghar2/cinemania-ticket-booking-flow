@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface LoginResponse {
@@ -126,37 +127,47 @@ class SupabaseApiService {
   async getMovies(city?: string) {
     console.log('Fetching movies from Supabase for city:', city);
     
+    // Handle both 'Bangalore' and 'Bengaluru' city names
+    const searchCity = city === 'Bangalore' ? 'Bengaluru' : city;
+    
     let query = supabase
       .from('movies')
-      .select(`
-        *,
-        shows!inner(
-          theatre:theatres!inner(city)
-        )
-      `)
+      .select('*')
       .order('title');
 
-    if (city) {
-      query = query.eq('shows.theatre.city', city);
-    }
-
-    const { data, error } = await query;
+    const { data: movies, error } = await query;
 
     if (error) {
       console.error('Failed to fetch movies:', error);
       throw new Error(`Failed to fetch movies: ${error.message}`);
     }
 
-    // Remove duplicates by movie id
-    const uniqueMovies = data?.reduce((acc: any[], movie: any) => {
-      if (!acc.find(m => m.id === movie.id)) {
-        acc.push(movie);
-      }
-      return acc;
-    }, []) || [];
+    // If city is specified, filter movies that have shows in that city
+    if (searchCity) {
+      const { data: showsData, error: showsError } = await supabase
+        .from('shows')
+        .select(`
+          movie_id,
+          theatre:theatres!inner(city)
+        `)
+        .eq('theatre.city', searchCity);
 
-    console.log('Successfully fetched movies:', uniqueMovies?.length || 0);
-    return uniqueMovies;
+      if (showsError) {
+        console.error('Failed to fetch shows for city filter:', showsError);
+        return movies || [];
+      }
+
+      // Get unique movie IDs that have shows in the specified city
+      const movieIdsWithShows = [...new Set(showsData?.map(show => show.movie_id) || [])];
+      
+      // Filter movies to only include those with shows in the city
+      const filteredMovies = movies?.filter(movie => movieIdsWithShows.includes(movie.id)) || [];
+      console.log(`Found ${filteredMovies.length} movies with shows in ${searchCity}`);
+      return filteredMovies;
+    }
+
+    console.log('Successfully fetched movies:', movies?.length || 0);
+    return movies || [];
   }
 
   async getMovie(movieId: string) {
@@ -175,6 +186,11 @@ class SupabaseApiService {
   }
 
   async getMovieShows(movieId: string, city?: string, date?: string) {
+    console.log('Fetching shows for movie:', movieId, 'city:', city, 'date:', date);
+    
+    // Handle both 'Bangalore' and 'Bengaluru' city names
+    const searchCity = city === 'Bangalore' ? 'Bengaluru' : city;
+    
     let query = supabase
       .from('shows')
       .select(`
@@ -184,8 +200,8 @@ class SupabaseApiService {
       `)
       .eq('movie_id', movieId);
 
-    if (city) {
-      query = query.eq('theatre.city', city);
+    if (searchCity) {
+      query = query.eq('theatre.city', searchCity);
     }
 
     if (date) {
@@ -199,6 +215,7 @@ class SupabaseApiService {
       throw new Error(`Failed to fetch movie shows: ${error.message}`);
     }
 
+    console.log(`Found ${data?.length || 0} shows for movie ${movieId} in ${searchCity} on ${date || 'all dates'}`);
     return data || [];
   }
 

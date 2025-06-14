@@ -11,7 +11,7 @@ import { apiService } from '@/services/api';
 const MovieDetails = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const city = searchParams.get('city') || 'Mumbai';
+  const city = searchParams.get('city') || 'Bangalore';
   
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
@@ -27,13 +27,16 @@ const MovieDetails = () => {
       
       try {
         setLoading(true);
+        console.log('Fetching movie details for ID:', id, 'City:', city, 'Date:', selectedDate);
         
         // Fetch movie details
         const movieData = await apiService.getMovie(id);
+        console.log('Movie data received:', movieData);
         setMovie(movieData);
         
         // Fetch shows for this movie in the selected city and date
         const showsData = await apiService.getMovieShows(id, city, selectedDate);
+        console.log('Shows data received:', showsData);
         setShows(showsData);
       } catch (error) {
         console.error('Failed to fetch movie data:', error);
@@ -181,6 +184,7 @@ const MovieDetails = () => {
             <div className="text-center py-12">
               <p className="text-gray-600 text-lg">No shows available for this date in {city}.</p>
               <p className="text-gray-500">Try selecting a different date.</p>
+              <p className="text-gray-400 text-sm mt-2">Debug: Found {shows.length} total shows</p>
             </div>
           ) : (
             <div className="space-y-6">
