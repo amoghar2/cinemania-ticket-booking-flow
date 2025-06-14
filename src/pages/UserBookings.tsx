@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, Ticket } from 'lucide-react';
@@ -11,6 +12,9 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 const UserBookings = () => {
   const { user } = useAuth();
+
+  // Get user's first name from user metadata
+  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -44,7 +48,7 @@ const UserBookings = () => {
             My Bookings
           </h1>
           <p className="text-gray-600">
-            Welcome back, {user?.firstName || user?.email}! 
+            Welcome back, {firstName}! 
             Here are your movie ticket bookings.
           </p>
         </div>

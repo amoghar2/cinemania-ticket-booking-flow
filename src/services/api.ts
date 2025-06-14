@@ -70,7 +70,7 @@ class ApiService {
     return supabaseApiService.initiatePayment(bookingId, amount);
   }
 
-  async confirmPayment(transactionId: string, status: string) {
+  async confirmPayment(transactionId: string, status: 'completed' | 'failed') {
     return supabaseApiService.confirmPayment(transactionId, status);
   }
 }

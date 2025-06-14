@@ -6,10 +6,12 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<{ error: any }>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loading: boolean;
+  isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,19 +49,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      return { error };
+      return !error;
     } catch (error: any) {
-      return { error };
+      return false;
     }
   };
 
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -72,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailRedirectTo: `${window.location.origin}/`,
         },
       });
-      return { error };
+      return !error;
     } catch (error: any) {
-      return { error };
+      return false;
     }
   };
 
@@ -89,6 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     loading,
+    isLoading: loading,
+    isAuthenticated: !!user,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

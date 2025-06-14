@@ -13,6 +13,9 @@ const Navigation = () => {
     isOpen: false,
     mode: 'signin'
   });
+
+  // Get user's first name from user metadata
+  const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0];
   
   return (
     <>
@@ -51,7 +54,7 @@ const Navigation = () => {
                   
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600 hidden sm:inline">
-                      Welcome, {user?.firstName || user?.email}
+                      Welcome, {firstName}
                     </span>
                     <Button 
                       variant="ghost"
