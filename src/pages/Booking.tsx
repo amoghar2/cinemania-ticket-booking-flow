@@ -77,7 +77,7 @@ const Booking = () => {
 
       // Navigate to confirmation page with all details
       setTimeout(() => {
-        navigate('/booking-confirmation', {
+        navigate(`/confirmation/${booking.id}`, {
           state: {
             movie: bookingData.movie,
             theatre: bookingData.theatre,
