@@ -1,5 +1,11 @@
-// Updated API service to use Supabase instead of FastAPI backend
-import { supabaseApiService } from './supabaseApi';
+
+// Updated API service to use modular Supabase services
+import { authService } from './auth';
+import { moviesService } from './movies';
+import { showsService } from './shows';
+import { seatsService } from './seats';
+import { bookingsService } from './bookings';
+import { paymentsService } from './payments';
 
 interface LoginResponse {
   access_token: string;
@@ -26,52 +32,51 @@ interface LoginData {
 
 class ApiService {
   async login(data: LoginData): Promise<LoginResponse> {
-    return supabaseApiService.login(data);
+    return authService.login(data);
   }
 
   async register(data: RegisterData): Promise<LoginResponse> {
-    return supabaseApiService.register(data);
+    return authService.register(data);
   }
 
   async getCurrentUser() {
-    return supabaseApiService.getCurrentUser();
+    return authService.getCurrentUser();
   }
 
   async getMovies(city?: string) {
-    return supabaseApiService.getMovies(city);
+    return moviesService.getMovies(city);
   }
 
   async getMovie(movieId: string) {
-    return supabaseApiService.getMovie(movieId);
+    return moviesService.getMovie(movieId);
   }
 
   async getMovieShows(movieId: string, city?: string, date?: string) {
-    return supabaseApiService.getMovieShows(movieId, city, date);
+    return showsService.getMovieShows(movieId, city, date);
   }
 
   async getShowSeats(showId: string) {
-    return supabaseApiService.getShowSeats(showId);
+    return seatsService.getShowSeats(showId);
   }
 
   async lockSeats(showId: string, seatIds: string[], userSession: string) {
-    return supabaseApiService.lockSeats(showId, seatIds, userSession);
+    return seatsService.lockSeats(showId, seatIds, userSession);
   }
 
   async createBooking(showId: string, seatIds: string[], userEmail: string) {
-    return supabaseApiService.createBooking(showId, seatIds, userEmail);
+    return bookingsService.createBooking(showId, seatIds, userEmail);
   }
 
   async getUserBookings(userId: string) {
-    return supabaseApiService.getUserBookings(userId);
+    return bookingsService.getUserBookings(userId);
   }
 
   async initiatePayment(bookingId: string, amount: number) {
-    return supabaseApiService.initiatePayment(bookingId, amount);
+    return paymentsService.initiatePayment(bookingId, amount);
   }
 
   async confirmPayment(transactionId: string, status: 'completed' | 'failed') {
-    // Use correct argument in supabaseApiService
-    return supabaseApiService.confirmPayment(transactionId, status);
+    return paymentsService.confirmPayment(transactionId, status);
   }
 }
 
