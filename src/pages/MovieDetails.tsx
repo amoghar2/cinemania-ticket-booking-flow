@@ -11,7 +11,7 @@ import { apiService } from '@/services/api';
 const MovieDetails = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const city = searchParams.get('city') || 'Bangalore';
+  const city = searchParams.get('city') || 'Bengaluru';
   
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
@@ -36,7 +36,7 @@ const MovieDetails = () => {
         
         // Fetch shows for this movie in the selected city and date
         const showsData = await apiService.getMovieShows(id, city, selectedDate);
-        console.log('Shows data received:', showsData);
+        console.log('Shows data received for', city, ':', showsData);
         setShows(showsData);
       } catch (error) {
         console.error('Failed to fetch movie data:', error);
@@ -85,10 +85,9 @@ const MovieDetails = () => {
     };
   });
 
-  // Group shows by theatre with null checks
+  // Group shows by theatre with enhanced null checks
   const showsByTheatre = shows.reduce((acc, show) => {
-    // Add null check for show.theatre
-    if (!show.theatre || !show.theatre.id) {
+    if (!show || !show.theatre || !show.theatre.id) {
       console.warn('Show missing theatre data:', show);
       return acc;
     }
@@ -184,7 +183,9 @@ const MovieDetails = () => {
             <div className="text-center py-12">
               <p className="text-gray-600 text-lg">No shows available for this date in {city}.</p>
               <p className="text-gray-500">Try selecting a different date.</p>
-              <p className="text-gray-400 text-sm mt-2">Debug: Found {shows.length} total shows</p>
+              <p className="text-gray-400 text-sm mt-2">
+                Debug: Found {shows.length} total shows for movie ID {id} in {city} on {selectedDate}
+              </p>
             </div>
           ) : (
             <div className="space-y-6">

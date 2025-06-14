@@ -10,13 +10,13 @@ import Navigation from '@/components/Navigation';
 import { apiService } from '@/services/api';
 
 const Index = () => {
-  const [selectedCity, setSelectedCity] = useState('Bangalore');
+  const [selectedCity, setSelectedCity] = useState('Bengaluru');
   const [searchQuery, setSearchQuery] = useState('');
   const [movies, setMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cities] = useState([
-    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
+    'Mumbai', 'Delhi', 'Bengaluru', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
     'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio',
     'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'San Francisco', 'Columbus',
     'Charlotte', 'Indianapolis', 'Seattle', 'Denver', 'Washington', 'Boston', 'Nashville'
@@ -33,6 +33,8 @@ const Index = () => {
         setFilteredMovies(moviesData);
       } catch (error) {
         console.error('Failed to fetch movies:', error);
+        setMovies([]);
+        setFilteredMovies([]);
       } finally {
         setLoading(false);
       }
@@ -122,6 +124,7 @@ const Index = () => {
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">No movies found for {selectedCity}.</p>
             <p className="text-gray-500">Try selecting a different city or check back later.</p>
+            <p className="text-gray-400 text-sm mt-2">Debug: Total movies loaded: {movies.length}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
