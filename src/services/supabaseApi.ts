@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface LoginResponse {
@@ -129,6 +128,7 @@ class SupabaseApiService {
     
     // Handle both 'Bangalore' and 'Bengaluru' city names
     const searchCity = city === 'Bangalore' ? 'Bengaluru' : city;
+    console.log('Normalized city for search:', searchCity);
     
     let query = supabase
       .from('movies')
@@ -142,8 +142,12 @@ class SupabaseApiService {
       throw new Error(`Failed to fetch movies: ${error.message}`);
     }
 
+    console.log('Total movies found in database:', movies?.length || 0);
+
     // If city is specified, filter movies that have shows in that city
     if (searchCity) {
+      console.log('Filtering movies for city:', searchCity);
+      
       const { data: showsData, error: showsError } = await supabase
         .from('shows')
         .select(`
@@ -157,8 +161,11 @@ class SupabaseApiService {
         return movies || [];
       }
 
+      console.log('Shows found for city filter:', showsData?.length || 0);
+
       // Get unique movie IDs that have shows in the specified city
       const movieIdsWithShows = [...new Set(showsData?.map(show => show.movie_id) || [])];
+      console.log('Unique movie IDs with shows in', searchCity, ':', movieIdsWithShows.length);
       
       // Filter movies to only include those with shows in the city
       const filteredMovies = movies?.filter(movie => movieIdsWithShows.includes(movie.id)) || [];
@@ -171,6 +178,7 @@ class SupabaseApiService {
   }
 
   async getMovie(movieId: string) {
+    console.log('Fetching movie details for ID:', movieId);
     const { data, error } = await supabase
       .from('movies')
       .select('*')
@@ -182,15 +190,35 @@ class SupabaseApiService {
       throw new Error(`Failed to fetch movie: ${error.message}`);
     }
 
+    console.log('Movie found:', data?.title);
     return data;
   }
 
   async getMovieShows(movieId: string, city?: string, date?: string) {
-    console.log('Fetching shows for movie:', movieId, 'city:', city, 'date:', date);
+    console.log('=== MOVIE SHOWS DEBUG ===');
+    console.log('Input params:', { movieId, city, date });
     
     // Handle both 'Bangalore' and 'Bengaluru' city names
     const searchCity = city === 'Bangalore' ? 'Bengaluru' : city;
+    console.log('Normalized city:', searchCity);
     
+    // First, let's check what shows exist for this movie without any filters
+    const { data: allShows, error: allShowsError } = await supabase
+      .from('shows')
+      .select(`
+        *,
+        movie:movies(*),
+        theatre:theatres(*)
+      `)
+      .eq('movie_id', movieId);
+    
+    console.log('Total shows found for movie (no filters):', allShows?.length || 0);
+    if (allShows && allShows.length > 0) {
+      console.log('Sample show data:', allShows[0]);
+      console.log('Available cities for this movie:', [...new Set(allShows.map(s => s.theatre?.city))]);
+      console.log('Available dates for this movie:', [...new Set(allShows.map(s => s.show_date))]);
+    }
+
     let query = supabase
       .from('shows')
       .select(`
@@ -201,10 +229,12 @@ class SupabaseApiService {
       .eq('movie_id', movieId);
 
     if (searchCity) {
+      console.log('Adding city filter:', searchCity);
       query = query.eq('theatre.city', searchCity);
     }
 
     if (date) {
+      console.log('Adding date filter:', date);
       query = query.eq('show_date', date);
     }
 
@@ -215,7 +245,32 @@ class SupabaseApiService {
       throw new Error(`Failed to fetch movie shows: ${error.message}`);
     }
 
-    console.log(`Found ${data?.length || 0} shows for movie ${movieId} in ${searchCity} on ${date || 'all dates'}`);
+    console.log(`Final filtered shows: ${data?.length || 0} shows for movie ${movieId} in ${searchCity} on ${date || 'all dates'}`);
+    
+    if (data && data.length > 0) {
+      console.log('Sample filtered show:', data[0]);
+    } else {
+      console.log('No shows found with current filters - debugging...');
+      
+      // Let's check what theatres exist in the city
+      const { data: theatres } = await supabase
+        .from('theatres')
+        .select('*')
+        .eq('city', searchCity);
+      console.log('Theatres in', searchCity, ':', theatres?.length || 0);
+      
+      // Check shows for those theatres
+      if (theatres && theatres.length > 0) {
+        const theatreIds = theatres.map(t => t.id);
+        const { data: showsInCity } = await supabase
+          .from('shows')
+          .select('*')
+          .in('theatre_id', theatreIds);
+        console.log('Total shows in city theatres:', showsInCity?.length || 0);
+      }
+    }
+    
+    console.log('=== END DEBUG ===');
     return data || [];
   }
 

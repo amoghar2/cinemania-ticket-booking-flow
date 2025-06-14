@@ -36,7 +36,7 @@ const MovieDetails = () => {
         
         // Fetch shows for this movie in the selected city and date
         const showsData = await apiService.getMovieShows(id, city, selectedDate);
-        console.log('Shows data received for', city, ':', showsData);
+        console.log('Shows data received for', city, 'on', selectedDate, ':', showsData);
         setShows(showsData);
       } catch (error) {
         console.error('Failed to fetch movie data:', error);
@@ -185,6 +185,9 @@ const MovieDetails = () => {
               <p className="text-gray-500">Try selecting a different date.</p>
               <p className="text-gray-400 text-sm mt-2">
                 Debug: Found {shows.length} total shows for movie ID {id} in {city} on {selectedDate}
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Check browser console for detailed debugging information.
               </p>
             </div>
           ) : (
