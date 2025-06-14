@@ -1,4 +1,3 @@
-
 // Updated API service to use Supabase instead of FastAPI backend
 import { supabaseApiService } from './supabaseApi';
 
@@ -71,6 +70,7 @@ class ApiService {
   }
 
   async confirmPayment(transactionId: string, status: 'completed' | 'failed') {
+    // Use correct argument in supabaseApiService
     return supabaseApiService.confirmPayment(transactionId, status);
   }
 }

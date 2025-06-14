@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface LoginResponse {
@@ -356,7 +355,7 @@ class SupabaseApiService {
     return data;
   }
 
-  async confirmPayment(transactionId: string, status: 'pending' | 'success' | 'failed' | 'refunded') {
+  async confirmPayment(transactionId: string, status: 'pending' | 'completed' | 'failed' | 'refunded') {
     console.log('Confirming payment with status:', status);
     
     const { data: payment, error } = await supabase
@@ -372,7 +371,7 @@ class SupabaseApiService {
     }
 
     // Update booking status
-    if (status === 'success') {
+    if (status === 'completed') {
       await supabase
         .from('bookings')
         .update({ 

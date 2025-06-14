@@ -63,9 +63,9 @@ const Booking = () => {
       const payment = await apiService.initiatePayment(booking.id, finalAmount);
       console.log('Payment initiated:', payment);
       
-      // Confirm payment with 'success' status (not 'completed')
-      await apiService.confirmPayment(payment.transaction_id, 'success');
-      console.log('Payment confirmed as success');
+      // Confirm payment with 'completed' status
+      await apiService.confirmPayment(payment.transaction_id, 'completed');
+      console.log('Payment confirmed as completed');
       
       // Show success toast
       toast({
